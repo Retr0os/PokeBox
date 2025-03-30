@@ -30,6 +30,25 @@ class _MainAppState extends State<MainApp> {
   List<Map<String, dynamic>> cartasGuardadas = [];
   Map<String, dynamic>? cartaPendiente;
 
+  late final List<Widget> _pantallas;
+
+  @override
+  void initState() {
+    super.initState();
+    _pantallas = [
+      _buildInicioScreen(),
+      BusquedaScreen(
+        onGuardarCarta: (carta) {
+          setState(() {
+            cartasGuardadas.insert(0, carta);
+            if (cartasGuardadas.length > 10) cartasGuardadas.removeLast();
+          });
+        },
+      ),
+      DecksScreen(),
+    ];
+  }
+
   Future<Map<String, dynamic>?> fetchCarta() async {
     final random = Random();
     final page = random.nextInt(1000) + 1;
@@ -93,127 +112,116 @@ class _MainAppState extends State<MainApp> {
     if (nueva != null) {
       setState(() {
         cartaPendiente = nueva;
+        _pantallas[0] = _buildInicioScreen(); // reconstruir pantalla con nueva carta
       });
     }
   }
 
+  Widget _buildInicioScreen() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          AppBar(title: Text("¡PokeBox!"), centerTitle: true),
+          if (cartaPendiente != null)
+            Column(
+              children: [
+                SizedBox(height: 10),
+                Text(
+                  cartaPendiente!['nombre'],
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ZoomImageScreen(imageUrl: cartaPendiente!['imagen']),
+                      ),
+                    );
+                  },
+                  child: Hero(
+                    tag: cartaPendiente!['imagen'],
+                    child: Image.network(cartaPendiente!['imagen'], height: 200),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(" Precios por tipo:", style: TextStyle(fontWeight: FontWeight.bold)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: (cartaPendiente!['precios'] as Map<String, dynamic>)
+                        .entries
+                        .map((entry) {
+                      final tipo = entry.key;
+                      final precios = entry.value;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 8),
+                          Text(" Tipo: $tipo"),
+                          Text("• Market: \$${precios['market']}"),
+                          Text("• Low: \$${precios['low']}"),
+                          Text("• High: \$${precios['high']}"),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+                SizedBox(height: 20),
+              ],
+            ),
+          ElevatedButton(
+            onPressed: generarNuevaCarta,
+            child: Text("Carta aleatoria"),
+          ),
+          Divider(height: 30),
+          Text("Historial", style: TextStyle(fontSize: 18)),
+          SizedBox(height: 10),
+          cartasGuardadas.isEmpty
+              ? Text("Aún no has guardado cartas")
+              : SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: cartasGuardadas.length,
+              itemBuilder: (context, index) {
+                final carta = cartasGuardadas[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ZoomImageScreen(imageUrl: carta['imagen']),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: EdgeInsets.all(10),
+                    width: 160,
+                    child: Hero(
+                      tag: carta['imagen'],
+                      child: Image.network(carta['imagen']),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    Widget contenido;
-
-    if (_selectedIndex == 0) {
-      contenido = SingleChildScrollView(
-        child: Column(
-          children: [
-            AppBar(title: Text("¡PokeBox!"), centerTitle: true),
-            if (cartaPendiente != null)
-              Column(
-                children: [
-                  SizedBox(height: 10),
-                  Text(
-                    cartaPendiente!['nombre'],
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ZoomImageScreen(imageUrl: cartaPendiente!['imagen']),
-                        ),
-                      );
-                    },
-                    child: Hero(
-                      tag: cartaPendiente!['imagen'],
-                      child: Image.network(cartaPendiente!['imagen'], height: 200),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Text(" Precios por tipo:", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: (cartaPendiente!['precios'] as Map<String, dynamic>)
-                          .entries
-                          .map((entry) {
-                        final tipo = entry.key;
-                        final precios = entry.value;
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 8),
-                            Text(" Tipo: $tipo"),
-                            Text("• Market: \$${precios['market']}"),
-                            Text("• Low: \$${precios['low']}"),
-                            Text("• High: \$${precios['high']}"),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                ],
-              ),
-            ElevatedButton(
-              onPressed: generarNuevaCarta,
-              child: Text("Carta aleatoria"),
-            ),
-            Divider(height: 30),
-            Text("Historial", style: TextStyle(fontSize: 18)),
-            SizedBox(height: 10),
-            cartasGuardadas.isEmpty
-                ? Text("Aún no has guardado cartas")
-                : SizedBox(
-              height: 200,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: cartasGuardadas.length,
-                itemBuilder: (context, index) {
-                  final carta = cartasGuardadas[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ZoomImageScreen(imageUrl: carta['imagen']),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: EdgeInsets.all(10),
-                      width: 160,
-                      child: Hero(
-                        tag: carta['imagen'],
-                        child: Image.network(carta['imagen']),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: 20),
-          ],
-        ),
-      );
-    } else if (_selectedIndex == 1) {
-      contenido = BusquedaScreen(
-        onGuardarCarta: (carta) {
-          setState(() {
-            cartasGuardadas.insert(0, carta);
-            if (cartasGuardadas.length > 10) {
-              cartasGuardadas.removeLast();
-            }
-          });
-        },
-      );
-    } else {
-      contenido = DecksScreen(); // 👉 Aquí se muestra la nueva pestaña
-    }
-
     return Scaffold(
-      body: contenido,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pantallas,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: cambiarPestana,
@@ -256,5 +264,3 @@ class ZoomImageScreen extends StatelessWidget {
     );
   }
 }
-
-

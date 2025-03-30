@@ -96,3 +96,10 @@ flutter_icons:
   image_path: "assets/icon/Icon2.png"  # Ruta del icono
   adaptive_icon_foreground: "assets/icon/Icon2.png"  # Solo Android
   adaptive_icon_background: "assets/icon/Icon2.png"  # Solo Android
+
+  flutter:
+    assets:
+      - assets/icon/PokeBall.png
+
+
+
